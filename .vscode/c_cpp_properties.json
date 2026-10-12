@@ -1,0 +1,15 @@
+{
+  "version": 4,
+  "configurations": [
+    {
+      "name": "macOS Homebrew GCC",
+      "compilerPath": "/opt/homebrew/bin/g++-16",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "macos-gcc-arm64",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/**"
+      ]
+    }
+  ]
+}

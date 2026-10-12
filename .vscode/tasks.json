@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build with Homebrew GCC",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/g++-16",
+      "args": [
+        "-std=c++17",
+        "-O3",
+        "-ffast-math",
+        "-march=native",
+        "-fopenmp",
+        "-g",
+        "-I",
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/src/*.cpp",
+        "-o",
+        "${workspaceFolder}/mnist_app"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Download MNIST",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "${workspaceFolder}/scripts/download_mnist.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

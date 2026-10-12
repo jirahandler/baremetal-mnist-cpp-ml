@@ -1,0 +1,10 @@
+CompileFlags:
+  Compiler: /opt/homebrew/bin/g++-16
+  Add:
+    - -std=c++17
+    - -O3
+    - -ffast-math
+    - -march=native
+    - -fopenmp
+    - -g
+    - -I/Users/sgoswami/Documents/cpp-ml-training/baremetal/include

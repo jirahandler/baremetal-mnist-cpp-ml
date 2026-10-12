@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# Commit the current project state and push it to the configured GitHub
+# repository. Run this script from the project root.
+#
+# Optional usage:
+#   ./gitcommit.src "describe the change"
+#
+# Without an argument, the commit message contains the current local timestamp.
+
+set -euo pipefail
+
+readonly repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly remote_url="https://github.com/jirahandler/baremetal-mnist-cpp-ml.git"
+readonly timestamp="$(date '+%Y-%m-%d %H:%M:%S %z')"
+
+cd "$repository_root"
+
+if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
+    git init
+fi
+
+if git remote get-url origin >/dev/null 2>&1; then
+    current_remote="$(git remote get-url origin)"
+    if [[ "$current_remote" != "$remote_url" ]]; then
+        printf 'error: origin already points to %s\n' "$current_remote" >&2
+        printf '       expected %s\n' "$remote_url" >&2
+        exit 1
+    fi
+else
+    git remote add origin "$remote_url"
+fi
+
+git branch -M main
+git add --all
+
+if git diff --cached --quiet; then
+    printf 'No changes to commit. Pushing the current main branch.\n'
+else
+    if (($# > 0)); then
+        commit_message="$1"
+    else
+        commit_message="Update project - $timestamp"
+    fi
+
+    git commit -m "$commit_message"
+fi
+
+git push -u origin main

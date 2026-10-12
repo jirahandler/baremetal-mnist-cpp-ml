@@ -1,0 +1,85 @@
+# Build products and generated binaries
+build/
+mnist_app
+mnist_app.dSYM/
+*.o
+*.d
+*.dSYM/
+*.out
+*.exe
+*.app
+*.a
+*.so
+*.dylib
+
+# CMake and other generated build directories
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile.old
+
+# Compiler and debugger output
+*.asm
+*.stackdump
+*.core
+core
+core.*
+
+# Downloaded datasets and generated data
+data/*
+!data/.gitkeep
+
+# Operating-system files
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+Icon?
+.Spotlight-V100/
+.Trashes/
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Editor swap, backup, and temporary files
+*.swp
+*.swo
+*.swn
+*.swm
+*.tmp
+*.temp
+*.bak
+*.orig
+*~
+.#*
+
+# Logs, reports, and coverage output
+*.log
+*.log.*
+*.err
+*.pid
+*.seed
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+
+# IDE and editor-local state
+.idea/
+.vscode/*.log
+.vscode/*.code-snippets
+.history/
+
+# Python tooling caches (if used for experiments)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Local environment and secret configuration
+.env
+.env.*
+!.env.example
