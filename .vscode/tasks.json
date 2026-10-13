@@ -13,7 +13,12 @@
         "-fopenmp",
         "-g",
         "-I",
+        "/opt/homebrew/include",
+        "-I",
         "${workspaceFolder}/include",
+        "-L",
+        "/opt/homebrew/lib",
+        "-lyaml-cpp",
         "${workspaceFolder}/src/*.cpp",
         "-o",
         "${workspaceFolder}/mnist_app"

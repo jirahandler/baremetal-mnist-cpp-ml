@@ -6,15 +6,24 @@ BUILD_DIR := build
 INCLUDE_DIR := include
 SRC_DIR := src
 
-CPPFLAGS := -I$(INCLUDE_DIR)
-# -O3 enables aggressive compiler optimization, such as inlining and loop
-# optimization, to reduce the runtime of the numerical training code.
-# -ffast-math permits less strict IEEE floating-point transformations. This
-# can improve speed, but may slightly change rounding and numerical results.
+# Homebrew's header root. All Homebrew-installed libraries put their
+# headers here, so one -I covers yaml-cpp, libomp, and anything else
+# you add later.
+CPPFLAGS := -I$(INCLUDE_DIR) -I/opt/homebrew/include
+
+# -O3 enables aggressive compiler optimization.
+# -ffast-math permits reassociation of floating-point operations.
+# -fopenmp enables the OpenMP pragmas in neural_network.cpp.
+# -g adds debug symbols for gdb.
 CXXFLAGS := -std=c++17 -O3 -ffast-math -march=native -fopenmp -g
-# The linker also needs OpenMP so calls made by the parallel training loop
-# resolve correctly at the final executable-linking step.
-LDFLAGS := -fopenmp
+
+# -fopenmp on the link line pulls in the OpenMP runtime.
+# -L/opt/homebrew/lib tells the linker where to find Homebrew libraries.
+LDFLAGS := -fopenmp -L/opt/homebrew/lib
+
+# Libraries to link, listed AFTER the object files on the link line.
+# -lyaml-cpp resolves the YAML:: symbols used by config.cpp.
+LDLIBS := -lyaml-cpp
 
 SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SOURCES))
@@ -25,7 +34,7 @@ DEPFILES := $(OBJECTS:.o=.d)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(LDFLAGS) $^ -o $@
+	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 $(BUILD_DIR):
 	mkdir -p $@

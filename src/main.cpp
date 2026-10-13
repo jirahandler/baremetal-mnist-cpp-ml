@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdio>
 #include <chrono>
+#include "config.hpp"
 
 // AI is responsible for the function below, LOL.
 // Resize and center the drawing to match MNIST's preprocessing convention:
@@ -55,13 +56,11 @@ static std::vector<uint8_t> preprocess_canvas(const std::vector<uint8_t>& pixels
 }
 // The control comes back to me.
 int main() {
-    const std::string data_dir = "data";
+    Config cfg = load_config("config.yaml");
 
     std::cout << "Loading MNIST data...\n";
-    auto train = load_mnist(data_dir, "train-images-idx3-ubyte",
-                                       "train-labels-idx1-ubyte");
-    auto test  = load_mnist(data_dir, "t10k-images-idx3-ubyte",
-                                       "t10k-labels-idx1-ubyte");
+    auto train = load_mnist(cfg.data.dir, cfg.data.train_images, cfg.data.train_labels);
+    auto test  = load_mnist(cfg.data.dir, cfg.data.test_images,  cfg.data.test_labels);
 
     train.build_index();
 
@@ -72,18 +71,24 @@ int main() {
     }
 
     std::cout << "\nTraining network (this may take a minute or more, panick only if it takes too long or your CPU is on fire)...\n";
-    NeuralNetwork net(784, 128, 10);
+    NeuralNetwork net(cfg.network.input_size,
+                  cfg.network.hidden_size,
+                  cfg.network.output_size);
 
     auto t0 = std::chrono::steady_clock::now();
 
     std::vector<std::vector<double>> train_norm(train.images.size());
     for (size_t i = 0; i < train.images.size(); ++i) {
-        train_norm[i].resize(784);
-        for (int j = 0; j < 784; ++j)
+        train_norm[i].resize(cfg.network.input_size);
+        for (int j = 0; j < cfg.network.input_size; ++j)
             train_norm[i][j] = train.images[i][j] / 255.0;
     }
 
-    net.train(train_norm, train.labels, 20, 0.4);
+    net.train(train_norm, train.labels,
+          cfg.training.epochs,
+          cfg.training.learning_rate,
+          cfg.training.batch_size);
+
     auto t1 = std::chrono::steady_clock::now();
 
     std::cout << "Training done in "
@@ -92,6 +97,10 @@ int main() {
 
     net.reset_stats();
     for (size_t i = 0; i < test.images.size(); ++i) {
+        /*
+         * The predict() method returns an int representing the predicted class.
+         * We need to convert it to uint8_t for the record() method.
+         */
         int pred = net.predict(test.images[i]);
         /*
          * static_cast<uint8_t>(pred) explicitly converts the int returned by

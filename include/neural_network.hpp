@@ -81,9 +81,10 @@ public:
      * biases are updated once per batch. The caller is responsible for
      * converting byte pixels to normalized values in the range 0.0 to 1.0.
      */
+    // header
     void train(const std::vector<std::vector<double>>& images,
            const std::vector<uint8_t>& labels,
-           int epochs, double learning_rate);
+           int epochs, double learning_rate, int batch_size);
 
     /**
      * @brief Converts output scores into a predicted class.

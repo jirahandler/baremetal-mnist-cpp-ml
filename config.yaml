@@ -1,0 +1,18 @@
+data:
+  dir: "data"
+  train_images: "train-images-idx3-ubyte"
+  train_labels: "train-labels-idx1-ubyte"
+  test_images: "t10k-images-idx3-ubyte"
+  test_labels: "t10k-labels-idx1-ubyte"
+
+network:
+  input_size: 784
+  hidden_size: 128
+  output_size: 10
+  seed: 42
+  weight_init_range: 0.1
+
+training:
+  epochs: 20
+  learning_rate: 0.4
+  batch_size: 64

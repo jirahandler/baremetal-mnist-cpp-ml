@@ -219,7 +219,7 @@ std::vector<double> NeuralNetwork::forward(const std::vector<uint8_t>& input) co
  */
 void NeuralNetwork::train(const std::vector<std::vector<double>>& images,
                           const std::vector<uint8_t>& labels,
-                          int epochs, double learning_rate) {
+                          int epochs, double learning_rate, int batch_size) {
     /*
      * MINI-BATCH STOCHASTIC GRADIENT DESCENT WITH HOISTED PARALLEL REGION
      *
@@ -333,8 +333,8 @@ void NeuralNetwork::train(const std::vector<std::vector<double>>& images,
      * revision of this code, and its absence was the cause of a systematic
      * accuracy drop.
      */
-    const int batch_size = 64;
     const size_t num_samples = images.size();
+    const size_t num_batches = (num_samples + batch_size - 1) / batch_size;
 
     /*
      * Number of batches. The formula rounds up so that a final partial
@@ -347,7 +347,6 @@ void NeuralNetwork::train(const std::vector<std::vector<double>>& images,
      * accounts for this by using `end - start` as the divisor for that
      * batch, not the constant `batch_size`.
      */
-    const size_t num_batches = (num_samples + batch_size - 1) / batch_size;
 
     /*
      * One-hot targets, built once and reused for all epochs. Previously

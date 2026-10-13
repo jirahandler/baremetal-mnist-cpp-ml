@@ -6,22 +6,24 @@ forward pass, stochastic-gradient-descent (SGD) training loop, mini-batching, ba
 model serialization helpers, and terminal drawing interface are all implemented
 in the project itself.
 
-The application performs the following magic:
+The application performs the following steps:
 
-1. Read the MNIST training and test images and labels from `data/`.
-2. Validate the IDX headers, magic numbers, image dimensions, and sample counts.
-3. Build an index of training samples by true digit.
-4. Construct a `784 -> 128 -> 10` fully connected neural network.
-5. Train it for twenty epochs with a learning rate of `0.1`.
+1. Load the dataset, network, and training settings from `config.yaml`.
+2. Read the MNIST training and test images and labels from the configured
+   directory.
+3. Validate the IDX headers, magic numbers, image dimensions, and sample counts.
+4. Build an index of training samples by true digit.
+5. Construct a configured fully connected neural network.
+6. Train it for twenty epochs with a learning rate of `0.4`.
    For each epoch, divide the training set into mini-batches of 64 samples.
    For every batch, calculate each sample's forward and backward pass,
    accumulate the gradient contributions, average the accumulated gradients,
    and update the weights and biases once.
-6. Classify every test image and print per-digit and overall accuracy.
-7. Open an interactive 28 x 28 terminal canvas so a user can draw a digit.
-8. Classify each drawing until the user quits.
+7. Classify every test image and print per-digit and overall accuracy.
+8. Open an interactive 28 x 28 terminal canvas so a user can draw a digit.
+9. Classify each drawing until the user quits.
 
-The result is an executable named `mnist_app`. It is a toy
+The result is an executable named `mnist_app`. It is an educational
 implementation rather than a production classifier: training is intentionally
 simple and uses nested vectors, OpenMP thread-local gradient accumulation, and
 a critical reduction rather than an optimized tensor backend. Weights are
@@ -43,19 +45,21 @@ baremetal/
 │   └── t10k-labels-idx1-ubyte
 ├── include/
 │   ├── canvas.hpp
+│   ├── config.hpp
 │   ├── mnist_loader.hpp
 │   └── neural_network.hpp
+├── config.yaml                  # runtime data, network, and training settings
 ├── Makefile                      # standalone command-line build
 ├── gitcommit.src                 # timestamped commit and GitHub push helper
 ├── .gitignore                    # excludes generated files and downloaded data
 ├── src/
 │   ├── canvas.cpp
+│   ├── config.cpp
 │   ├── main.cpp
 │   ├── mnist_loader.cpp
 │   └── neural_network.cpp
 ├── build/                        # compiler-generated object files
 ├── mnist_app                     # compiler-generated executable
-├── mnist_app.dSYM/               # macOS debug symbols
 └── .vscode/                      # build, debug, and IntelliSense settings
 ```
 
@@ -93,7 +97,7 @@ flowchart TD
 ```
 
 The program expects to be launched from the project root because `main.cpp`
-uses the relative data directory `data`.
+loads `config.yaml` and uses the paths configured there.
 
 ## GitHub workflow
 
@@ -164,9 +168,25 @@ The script accepts an optional destination directory:
 ./scripts/download_files.sh /tmp/mnist
 ```
 
-If a custom directory is used, update the `data_dir` value in `src/main.cpp`
-or copy the verified files into the project's `data/` directory before
-running the application.
+If a custom directory is used, update the `data.dir` value in
+[`config.yaml`](./config.yaml), or copy the verified files into the project's
+configured data directory before running the application.
+
+## Dependencies
+
+The project requires Homebrew GCC 16, OpenMP, and yaml-cpp. Install yaml-cpp
+from source with the same GCC toolchain used by the project:
+
+```bash
+HOMEBREW_CC=gcc-16 \
+HOMEBREW_CXX=g++-16 \
+brew install --build-from-source yaml-cpp
+```
+
+The build expects yaml-cpp headers under `/opt/homebrew/include` and the
+library under `/opt/homebrew/lib`. The Makefile links it with `-lyaml-cpp`.
+On Intel macOS systems, adjust the Homebrew include, library, compiler, and
+debugger paths for the local installation.
 
 ## Build and run
 
@@ -193,7 +213,8 @@ make run
 builds `mnist_app`; `make run` builds it if necessary and then starts it.
 
 The Makefile uses `/opt/homebrew/bin/g++-16` by default and matches the
-toolchain settings used by the VS Code build task:
+toolchain settings used by the VS Code build task. It includes the Homebrew
+header and library paths and links against yaml-cpp:
 
 - C++17
 - `-O3`
@@ -201,6 +222,8 @@ toolchain settings used by the VS Code build task:
 - `-march=native`
 - `-fopenmp`
 - debug symbols with `-g`
+- `/opt/homebrew/include` and `/opt/homebrew/lib`
+- `-lyaml-cpp`
 
 Useful targets are:
 
@@ -239,8 +262,11 @@ The `-fopenmp` option remains required in the Makefile and VS Code build flags.
 The checked-in defaults target an Apple Silicon Mac with Homebrew installed:
 
 1. Install Homebrew GCC and GDB if they are not already available.
-2. Confirm that `/opt/homebrew/bin/g++-16` and `/opt/homebrew/bin/gdb` exist.
-3. Run `make` and then `make run`, or use the VS Code build and debug
+2. Install yaml-cpp with the source-build command in the
+   [Dependencies](#dependencies) section.
+3. Confirm that `/opt/homebrew/bin/g++-16`, `/opt/homebrew/bin/gdb`, and the
+   yaml-cpp headers and library exist.
+4. Run `make` and then `make run`, or use the VS Code build and debug
    configurations.
 
 The Makefile is independent of VS Code and uses the compiler specified by its
@@ -285,12 +311,15 @@ and raw keyboard input. The canvas uses arrow keys, Space, `c`, Enter, and `q`.
 The current code separates dataset preparation, image normalization, model
 calculation, and interactive-image preparation:
 
-1. [`scripts/download_files.sh`](./scripts/download_files.sh) is created first
+1. [`config.yaml`](./config.yaml) supplies the runtime data, network, and
+   training settings.
+2. [`scripts/download_files.sh`](./scripts/download_files.sh) is created first
    during a fresh setup. It downloads, decompresses, and verifies the four
    MNIST IDX files.
-2. [`src/mnist_loader.cpp`](./src/mnist_loader.cpp) loads image bytes and
+3. [`src/mnist_loader.cpp`](./src/mnist_loader.cpp) loads image bytes and
    labels, validates the IDX headers, and builds the ordered `by_label` index.
-3. [`src/main.cpp`](./src/main.cpp) creates `train_norm` before training.
+4. [`src/main.cpp`](./src/main.cpp) loads `config.yaml` and creates `train_norm`
+   before training.
    Each training pixel is divided by `255.0` once and stored as a
    `double`. The already-normalized vectors are passed to `NeuralNetwork::train`.
 4. [`src/neural_network.cpp`](./src/neural_network.cpp) receives those
@@ -339,17 +368,60 @@ flowchart TD
     C --> D[Validate IDX headers]
     D --> E[Images and labels in MNISTData]
     E --> F[build_index by digit]
-    F --> G[NeuralNetwork 784-128-10]
-    G --> H[Twenty epochs of mini-batch SGD]
-    H --> I[Predict test images]
-    I --> J[Per-class and overall accuracy]
-    J --> K[Canvas 28x28]
-    K --> L[Draw pixels]
-    L --> M[Predict drawn digit]
-    M --> K
+    F --> G[Load config.yaml through yaml-cpp]
+    G --> H[NeuralNetwork 784-128-10]
+    H --> I[Twenty epochs of mini-batch SGD]
+    I --> J[Predict test images]
+    J --> K[Per-class and overall accuracy]
+    K --> L[Canvas 28x28]
+    L --> M[Draw pixels]
+    M --> N[Predict drawn digit]
+    N --> L
 ```
 
 ## File-by-file details
+
+### `config.yaml`
+
+`config.yaml` is loaded at startup by [`src/main.cpp`](./src/main.cpp) through
+yaml-cpp. It defines the dataset paths and filenames, network dimensions and
+initialization parameters, and training parameters:
+
+```yaml
+data:
+  dir: "data"
+  train_images: "train-images-idx3-ubyte"
+  train_labels: "train-labels-idx1-ubyte"
+  test_images: "t10k-images-idx3-ubyte"
+  test_labels: "t10k-labels-idx1-ubyte"
+
+network:
+  input_size: 784
+  hidden_size: 128
+  output_size: 10
+  seed: 42
+  weight_init_range: 0.1
+
+training:
+  epochs: 20
+  learning_rate: 0.4
+  batch_size: 64
+```
+
+Keep the configured data directory and filenames aligned with the files
+downloaded by [`scripts/download_files.sh`](./scripts/download_files.sh).
+
+### `include/config.hpp`
+
+Declares the `Config` structure and `load_config()` function. The structure
+contains the `data`, `network`, and `training` sections read from
+`config.yaml`.
+
+### `src/config.cpp`
+
+Implements configuration loading with yaml-cpp. YAML parsing failures are
+reported as `std::runtime_error`; missing or incorrectly typed configuration
+values are rejected by yaml-cpp's typed accessors.
 
 ### `src/main.cpp`
 
@@ -359,7 +431,8 @@ network, evaluates the test set, and starts the interactive drawing loop.
 
 Important behavior:
 
-- Training uses `20` epochs and learning rate `0.1`.
+- Training uses the `epochs`, `learning_rate`, and `batch_size` values from
+  `config.yaml` (the checked-in defaults are `20`, `0.4`, and `64`).
 - The network dimensions are `784` input values, `128` hidden units, and
   `10` output units.
 - Training images are copied into `train_norm` and normalized in `main.cpp`
@@ -839,8 +912,10 @@ compiles each source file into `build/*.o`, records header dependencies in
 Its default compiler is Homebrew GCC at `/opt/homebrew/bin/g++-16`, matching
 the configured VS Code toolchain. It enables C++17, optimization, fast
 floating-point math, native CPU instructions, OpenMP support, and debug
-symbols. The training batch loop uses thread-local accumulators and a critical
-reduction to avoid races while retaining parallel forward/backward computation.
+symbols. It adds `/opt/homebrew/include` and `/opt/homebrew/lib` and links
+yaml-cpp with `-lyaml-cpp`. The training batch loop uses thread-local
+accumulators and a critical reduction to avoid races while retaining parallel
+forward/backward computation.
 
 The Makefile does not replace or modify the VS Code tasks. It provides a
 separate interface:
@@ -863,22 +938,21 @@ flowchart TD
 
 Defines the default build task. It invokes Homebrew GCC with C++17, debug
 symbols, optimization, native CPU instructions, OpenMP support, the `include`
-search path, all `src/*.cpp` files, and the output path `mnist_app`. The `$gcc`
-problem matcher turns compiler diagnostics into editor diagnostics. The
-separate Makefile uses the same compiler flags but does not depend on VS Code.
+search path, the Homebrew include and library paths, yaml-cpp, all `src/*.cpp`
+files, and the output path `mnist_app`. The `$gcc` problem matcher turns
+compiler diagnostics into editor diagnostics. The separate Makefile uses the
+same compiler flags but does not depend on VS Code.
 
-The task named **Download MNIST** currently refers to
-`scripts/download_mnist.sh`, while the repository's dataset script is
-[`scripts/download_files.sh`](./scripts/download_files.sh). Use the Makefile's
-`make download` target or run `scripts/download_files.sh` directly unless that
-VS Code task is updated separately.
+The **Download MNIST** task should invoke
+[`scripts/download_files.sh`](./scripts/download_files.sh). The Makefile's
+`make download` target or the script itself can also be used directly.
 
 ```mermaid
 flowchart LR
     A[VS Code build task] --> B[g++-16]
     B --> C["C++17, O3, fast-math, native, OpenMP, debug"]
-    C --> D[-I include]
-    D --> E[src/*.cpp]
+    C --> D[-I include and /opt/homebrew/include]
+    D --> E[src/*.cpp and -lyaml-cpp]
     E --> F[mnist_app]
 ```
 
@@ -942,7 +1016,7 @@ application.
 
 ### `build/*.o`
 
-The object files (`main.o`, `canvas.o`, `mnist_loader.o`, and
+The object files (`main.o`, `canvas.o`, `config.o`, `mnist_loader.o`, and
 `neural_network.o`) are compiled translation units. They are intermediate
 artifacts and are not executed directly.
 
@@ -958,16 +1032,18 @@ flowchart LR
 ### `mnist_app`
 
 This is the linked executable produced by the VS Code build task or the command
-line build. It combines all four object files and starts at `main()`.
+line build. It combines the object files for all five source files and starts
+at `main()`.
 
 ```mermaid
 flowchart TD
-    A[main.o] --> E[Link]
-    B[canvas.o] --> E
-    C[mnist_loader.o] --> E
-    D[neural_network.o] --> E
-    E --> F[mnist_app]
-    F --> G[Load data, train, evaluate, draw]
+    A[main.o] --> F[Link]
+    B[canvas.o] --> F
+    C[config.o] --> F
+    D[mnist_loader.o] --> F
+    E[neural_network.o] --> F
+    F --> G[mnist_app]
+    G --> H[Load config, train, evaluate, draw]
 ```
 
 ### `mnist_app.dSYM/Contents/Info.plist`
@@ -1074,7 +1150,7 @@ starts from the same seed-controlled initial weights and trains a new model.
 - Model `save`/`load` exists, but `main.cpp` does not expose a command-line
   option for loading a model or saving the trained model. Each launch starts
   from the same seed-controlled initial weights, then trains a new model.
-- `main.cpp` uses the relative `data/` directory and fixed MNIST filenames, so
-  the dataset files must remain in those paths unless the source is changed.
+- `main.cpp` loads the relative `config.yaml` file at startup. The dataset
+  directory and filenames can be changed there without modifying the source.
 - The loader validates the IDX headers, dimensions, and image/label counts, but
   does not perform a final successful-read check for every payload byte.
