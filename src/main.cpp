@@ -129,22 +129,7 @@ int main() {
         Canvas canvas(28, 28);
         std::cout << "Draw a digit (press Enter to classify, q to quit).\n";
         canvas.run();
-
-        int nonzero = 0;
-    int first_x = -1, first_y = -1, last_x = -1, last_y = -1;
-    for (int y = 0; y < 28; ++y) {
-        for (int x = 0; x < 28; ++x) {
-            if (canvas.pixels()[y * 28 + x] > 0) {
-                ++nonzero;
-                if (first_x < 0) { first_x = x; first_y = y; }
-                last_x = x; last_y = y;
-            }
-        }
-    }
-    std::cout << "[debug] set pixels: " << nonzero
-          << "  bbox: (" << first_x << "," << first_y << ") to ("
-          << last_x << "," << last_y << ")\n";
-
+        // Removed the no-longer-needed debug block.
         std::vector<uint8_t> preprocessed = preprocess_canvas(canvas.pixels());
         int digit = net.predict(preprocessed);
         std::cout << "\n>>> The network predicts: " << digit << " <<<\n";
