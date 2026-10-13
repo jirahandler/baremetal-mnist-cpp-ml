@@ -972,41 +972,44 @@ flowchart TD
 
 ### `.vscode/c_cpp_properties.json`
 
-Configures the Microsoft C/C++ extension for the Homebrew GCC toolchain,
-C++17, Apple Silicon GCC IntelliSense, and the project include paths.
+Configures the Microsoft C/C++ extension to use Apple Clang for system-header
+IntelliSense on Apple Silicon, while retaining the Homebrew include path for
+yaml-cpp. The actual build continues to use Homebrew GCC through the Makefile
+and VS Code task.
 
 ```mermaid
 flowchart LR
-    A[IntelliSense configuration] --> B[Homebrew g++-16]
+    A[IntelliSense configuration] --> B[Apple Clang]
     A --> C[C++17]
-    A --> D[macos-gcc-arm64]
+    A --> D[macos-clang-arm64]
     A --> E[include/ and workspace tree]
 ```
 
 ### `.vscode/settings.json`
 
-Configures clangd to query the Homebrew GCC driver and enables Makefile
-configuration on workspace open. It complements, rather than replaces, the
-compiler and debugger settings.
+Enables clangd with the project-level flags in [`.clangd`](./.clangd) and
+enables Makefile configuration on workspace open. clangd uses Apple Clang for
+macOS system headers; the build task and Makefile continue to use Homebrew
+GCC.
 
 ```mermaid
 flowchart LR
-    A[VS Code settings] --> B[clangd query-driver]
-    B --> C["/opt/homebrew/bin/g++-16"]
+    A[VS Code settings] --> B[clangd]
+    B --> C[Apple Clang system headers]
     A --> D["Makefile configure on open"]
 ```
 
 ### `.clangd`
 
-The file is present as a project-level clangd configuration marker. Its current
-contents are empty, so the active clangd behavior comes from defaults and the
-driver setting in `.vscode/settings.json`.
+The project-level clangd configuration uses Apple Clang for macOS system
+headers and adds both the project headers and Homebrew's yaml-cpp headers.
+Homebrew GCC remains the compiler used by the build task and Makefile.
 
 ```mermaid
 flowchart LR
     A[clangd starts] --> B[Read .clangd]
-    B --> C[No project-specific overrides]
-    C --> D[Use clangd defaults and VS Code settings]
+    B --> C[Apple Clang and project flags]
+    C --> D[Resolve macOS and yaml-cpp headers]
 ```
 
 ## Generated artifacts

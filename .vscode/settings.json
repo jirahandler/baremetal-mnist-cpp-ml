@@ -1,7 +1,5 @@
 {
-  "clangd.arguments": [
-    "--query-driver=/opt/homebrew/bin/g++-16"
-  ],
+  "clangd.arguments": [],
   "C_Cpp.intelliSenseEngine": "default",
   "makefile.configureOnOpen": true
 }
