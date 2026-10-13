@@ -10,7 +10,7 @@
  * The idea is mine though.
  * I don't know stuff well enough to use c++ on a tty/pty,
  * that one is just niche knowledge of (game) devs.
- * so I just used this code to get a canvas to draw on.
+ * I just used this code to get a canvas to draw on.
  */
 
 static struct termios old_tio;
