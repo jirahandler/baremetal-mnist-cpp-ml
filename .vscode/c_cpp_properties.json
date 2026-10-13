@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "macOS Homebrew GCC",
-      "compilerPath": "/usr/bin/clang++",
+      "compilerPath": "/opt/homebrew/bin/gcc-16",
       "cppStandard": "c++17",
-      "intelliSenseMode": "macos-clang-arm64",
+      "intelliSenseMode": "macos-gcc-arm64",
       "includePath": [
         "${workspaceFolder}/include",
         "${workspaceFolder}/**",
