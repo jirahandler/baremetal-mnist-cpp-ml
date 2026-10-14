@@ -48,7 +48,8 @@ baremetal/
 │   ├── config.hpp
 │   ├── mnist_loader.hpp
 │   └── neural_network.hpp
-├── config.yaml                  # runtime data, network, and training settings
+├── configs/
+│   └── config.yaml              # default runtime settings
 ├── Makefile                      # standalone command-line build
 ├── gitcommit.src                 # timestamped commit and GitHub push helper
 ├── .gitignore                    # excludes generated files and downloaded data
@@ -97,7 +98,8 @@ flowchart TD
 ```
 
 The program expects to be launched from the project root because `main.cpp`
-loads `config.yaml` and uses the paths configured there.
+loads the default `configs/config.yaml` path relative to the working directory.
+Use `-c` or `--config` to select another YAML file.
 
 ## GitHub workflow
 
@@ -169,7 +171,7 @@ The script accepts an optional destination directory:
 ```
 
 If a custom directory is used, update the `data.dir` value in
-[`config.yaml`](./config.yaml), or copy the verified files into the project's
+[`configs/config.yaml`](./configs/config.yaml), or copy the verified files into the project's
 configured data directory before running the application.
 
 ## Dependencies
@@ -209,8 +211,25 @@ make
 make run
 ```
 
-`make` is the recommended legacy command-line workflow. The first command
-builds `mnist_app`; `make run` builds it if necessary and then starts it.
+`make` builds `mnist_app`; `make run` builds it if necessary and then starts it
+with the default `configs/config.yaml` configuration.
+
+To run another configuration directly:
+
+```bash
+./mnist_app -c configs/experiment.yaml
+./mnist_app --config configs/experiment.yaml
+./mnist_app --config=configs/experiment.yaml
+```
+
+The path is resolved relative to the directory where the executable is
+started. With the Makefile, pass the path through `CONFIG`:
+
+```bash
+make run CONFIG=configs/experiment.yaml
+```
+
+Use `./mnist_app --help` to display the available command-line options.
 
 The Makefile uses `/opt/homebrew/bin/g++-16` by default and matches the
 toolchain settings used by the VS Code build task. It includes the Homebrew
@@ -311,14 +330,14 @@ and raw keyboard input. The canvas uses arrow keys, Space, `c`, Enter, and `q`.
 The current code separates dataset preparation, image normalization, model
 calculation, and interactive-image preparation:
 
-1. [`config.yaml`](./config.yaml) supplies the runtime data, network, and
+1. [`configs/config.yaml`](./configs/config.yaml) supplies the default runtime data, network, and
    training settings.
 2. [`scripts/download_files.sh`](./scripts/download_files.sh) is created first
    during a fresh setup. It downloads, decompresses, and verifies the four
    MNIST IDX files.
 3. [`src/mnist_loader.cpp`](./src/mnist_loader.cpp) loads image bytes and
    labels, validates the IDX headers, and builds the ordered `by_label` index.
-4. [`src/main.cpp`](./src/main.cpp) loads `config.yaml` and creates `train_norm`
+4. [`src/main.cpp`](./src/main.cpp) loads the selected YAML configuration and creates `train_norm`
    before training.
    Each training pixel is divided by `255.0` once and stored as a
    `double`. The already-normalized vectors are passed to `NeuralNetwork::train`.
@@ -381,10 +400,11 @@ flowchart TD
 
 ## File-by-file details
 
-### `config.yaml`
+### `configs/config.yaml`
 
-`config.yaml` is loaded at startup by [`src/main.cpp`](./src/main.cpp) through
-yaml-cpp. It defines the dataset paths and filenames, network dimensions and
+[`configs/config.yaml`](./configs/config.yaml) is the default configuration.
+It is loaded at startup by [`src/main.cpp`](./src/main.cpp) through yaml-cpp.
+It defines the dataset paths and filenames, network dimensions and
 initialization parameters, and training parameters:
 
 ```yaml
@@ -408,14 +428,15 @@ training:
   batch_size: 64
 ```
 
-Keep the configured data directory and filenames aligned with the files
-downloaded by [`scripts/download_files.sh`](./scripts/download_files.sh).
+Copy this file when creating another experiment configuration. Keep the
+configured data directory and filenames aligned with the files downloaded by
+[`scripts/download_files.sh`](./scripts/download_files.sh).
 
 ### `include/config.hpp`
 
 Declares the `Config` structure and `load_config()` function. The structure
-contains the `data`, `network`, and `training` sections read from
-`config.yaml`.
+contains the `data`, `network`, and `training` sections read from the selected
+configuration file.
 
 ### `src/config.cpp`
 
@@ -432,7 +453,8 @@ network, evaluates the test set, and starts the interactive drawing loop.
 Important behavior:
 
 - Training uses the `epochs`, `learning_rate`, and `batch_size` values from
-  `config.yaml` (the checked-in defaults are `20`, `0.4`, and `64`).
+  the selected configuration file (the default values are `20`, `0.4`, and
+  `64`).
 - The network dimensions are `784` input values, `128` hidden units, and
   `10` output units.
 - Training images are copied into `train_norm` and normalized in `main.cpp`
@@ -1153,7 +1175,8 @@ starts from the same seed-controlled initial weights and trains a new model.
 - Model `save`/`load` exists, but `main.cpp` does not expose a command-line
   option for loading a model or saving the trained model. Each launch starts
   from the same seed-controlled initial weights, then trains a new model.
-- `main.cpp` loads the relative `config.yaml` file at startup. The dataset
-  directory and filenames can be changed there without modifying the source.
+- `main.cpp` loads `configs/config.yaml` by default. A different file can be
+  selected with `-c` or `--config`; the dataset directory and filenames can be
+  changed in that file without modifying the source.
 - The loader validates the IDX headers, dimensions, and image/label counts, but
   does not perform a final successful-read check for every payload byte.

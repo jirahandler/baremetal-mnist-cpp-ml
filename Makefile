@@ -45,7 +45,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 -include $(DEPFILES)
 
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) $(if $(CONFIG),-c $(CONFIG),)
 
 download:
 	bash scripts/download_files.sh

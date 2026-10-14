@@ -6,7 +6,10 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/mnist_app",
-      "args": [],
+      "args": [
+        "-c",
+        "${workspaceFolder}/configs/config.yaml"
+      ],
       "cwd": "${workspaceFolder}",
       "stopAtEntry": false,
       "externalConsole": false,

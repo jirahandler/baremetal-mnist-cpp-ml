@@ -4,9 +4,12 @@
 #include <iostream>
 #include <cstdio>
 #include <chrono>
+#include <cstdlib>
+#include <exception>
+#include <stdexcept>
+#include <string>
 #include "config.hpp"
 
-// AI is responsible for the function below, LOL.
 // Resize and center the drawing to match MNIST's preprocessing convention:
 // crop to the bounding box, scale so the longest side fits in 20 pixels,
 // then place in the 28x28 grid centered with 4 pixels of margin.
@@ -54,13 +57,61 @@ static std::vector<uint8_t> preprocess_canvas(const std::vector<uint8_t>& pixels
 
     return out;
 }
-// The control comes back to me.
-int main() {
-    Config cfg = load_config("config.yaml");
 
-    std::cout << "Loading MNIST data...\n";
-    auto train = load_mnist(cfg.data.dir, cfg.data.train_images, cfg.data.train_labels);
-    auto test  = load_mnist(cfg.data.dir, cfg.data.test_images,  cfg.data.test_labels);
+static void print_usage(const char* program) {
+    std::cout << "Usage: " << program << " [-c CONFIG | --config CONFIG]\n"
+              << "\n"
+              << "Options:\n"
+              << "  -c, --config CONFIG  YAML configuration file "
+                 "(default: configs/config.yaml)\n"
+              << "  -h, --help           Show this help message\n";
+}
+
+static std::string config_path_from_args(int argc, char* argv[]) {
+    constexpr const char* default_config = "configs/config.yaml";
+    std::string config_path = default_config;
+
+    for (int i = 1; i < argc; ++i) {
+        const std::string argument = argv[i];
+
+        if (argument == "-h" || argument == "--help") {
+            print_usage(argv[0]);
+            std::exit(0);
+        }
+
+        if (argument == "-c" || argument == "--config") {
+            if (i + 1 >= argc) {
+                throw std::runtime_error(argument + " requires a config file path");
+            }
+            config_path = argv[++i];
+            continue;
+        }
+
+        constexpr const char* config_prefix = "--config=";
+        if (argument.rfind(config_prefix, 0) == 0) {
+            config_path = argument.substr(std::string(config_prefix).size());
+            if (config_path.empty()) {
+                throw std::runtime_error("--config requires a config file path");
+            }
+            continue;
+        }
+
+        throw std::runtime_error("unknown option: " + argument +
+                                 "\nUse --help for usage.");
+    }
+
+    return config_path;
+}
+
+int main(int argc, char* argv[]) {
+    try {
+        const std::string config_path = config_path_from_args(argc, argv);
+        Config cfg = load_config(config_path);
+
+        std::cout << "Using configuration: " << config_path << "\n";
+        std::cout << "Loading MNIST data...\n";
+        auto train = load_mnist(cfg.data.dir, cfg.data.train_images, cfg.data.train_labels);
+        auto test  = load_mnist(cfg.data.dir, cfg.data.test_images,  cfg.data.test_labels);
 
     train.build_index();
 
@@ -139,5 +190,9 @@ int main() {
         if (c == 'q') break;
     }
 
-    return 0;
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "Error: " << error.what() << "\n";
+        return 1;
+    }
 }
